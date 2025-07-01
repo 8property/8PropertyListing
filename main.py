@@ -7,6 +7,10 @@ import time
 
 app = Flask(__name__)
 
+@app.route("/")
+def home():
+    return "✅ Centanet Flask app is running. Visit /scrape to run the scraper."
+
 @app.route("/scrape", methods=["GET"])
 def scrape_centanet():
     try:
@@ -54,4 +58,47 @@ def scrape_centanet():
                     usable_tag = card.select_one("div.area-block.usable-area div.num > span.hidden-xs-only")
                     usable_area = usable_tag.get_text(strip=True).replace("呎", "").replace(",", "") if usable_tag else ""
 
-                    construction_tag = card.select_one("div.area-block.construction-ar
+                    construction_tag = card.select_one("div.area-block.construction-area div.num > span.hidden-xs-only")
+                    construction_area = construction_tag.get_text(strip=True).replace("呎", "").replace(",", "") if construction_tag else ""
+
+                    rent = card.select_one("span.price-info")
+                    rent = rent.text.strip().replace(",", "").replace("$", "") if rent else ""
+
+                    image_tag = card.select_one("img")
+                    image_url = image_tag.get("src") if image_tag else ""
+
+                    output = f"{title}\n{subtitle}\n{area} | 實用: {usable_area}呎\n租金: ${int(rent):,}" if rent.isdigit() else ""
+
+                    all_data.append({
+                        "development": title,
+                        "details": subtitle,
+                        "area": area,
+                        "usable_area": usable_area,
+                        "construction_area": construction_area,
+                        "rent": rent,
+                        "image_url": image_url,
+                        "output": output
+                    })
+                except:
+                    continue
+
+            # Scroll back up and click next if possible
+            driver.execute_script("window.scrollTo(0, 0);")
+            try:
+                next_btn = driver.find_element("css selector", "button.btn-next")
+                if "disabled" in next_btn.get_attribute("class"):
+                    break
+                next_btn.click()
+                time.sleep(3)
+            except:
+                break
+
+        driver.quit()
+        return jsonify({"listings": all_data})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
