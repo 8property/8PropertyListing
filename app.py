@@ -4,7 +4,8 @@ from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 import os
 import time
-from app import app
+
+
 
 app = Flask(__name__)
 
