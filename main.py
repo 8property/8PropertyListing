@@ -25,7 +25,7 @@ def scrape_centanet():
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--window-size=1920,1080")
 
-        driver = uc.Chrome(options=options)
+        driver = webdriver.Chrome(options=options)
         base_url = "https://hk.centanet.com/findproperty/list/rent"
         driver.get(base_url)
         time.sleep(3)
