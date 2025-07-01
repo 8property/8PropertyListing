@@ -9,9 +9,13 @@ import time
 
 app = Flask(__name__)
 
-@app.route("/")
-def home():
-    return "✅ Centanet Flask app is running."
+@app.route("/scrape", methods=["GET"])
+def scrape_centanet():
+    try:
+        # Your scraping logic...
+        return jsonify({"listings": all_data})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/scrape", methods=["GET"])
 def scrape_centanet():
