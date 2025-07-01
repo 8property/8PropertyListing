@@ -5,6 +5,8 @@ from bs4 import BeautifulSoup
 import os
 import time
 import undetected_chromedriver as uc
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 
 app = Flask(__name__)
 
@@ -15,13 +17,13 @@ def home():
 @app.route("/scrape", methods=["GET"])
 def scrape_centanet():
     try:
-        options = uc.ChromeOptions()
-        options.binary_location = "/usr/bin/google-chrome"
+        options = Options()
+        options.binary_location = "/usr/bin/google-chrome"  # Render-installed path
         options.add_argument("--headless")
-        options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
+        options.add_argument("--disable-gpu")
         options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--window-size=1920x1080")
+        options.add_argument("--window-size=1920,1080")
 
         driver = uc.Chrome(options=options)
         base_url = "https://hk.centanet.com/findproperty/list/rent"
