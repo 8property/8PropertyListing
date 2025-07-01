@@ -4,7 +4,6 @@ from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 import os
 import time
-import undetected_chromedriver as uc
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 
