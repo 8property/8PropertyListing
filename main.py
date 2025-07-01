@@ -1,64 +1,54 @@
-from flask import Flask, jsonify
-import requests
-from bs4 import BeautifulSoup
-import os
+    from flask import Flask, jsonify
+    from bs4 import BeautifulSoup
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    import time
+    import os
 
-app = Flask(__name__)
+    app = Flask(__name__)
 
-@app.route("/")
-def home():
-    return "✅ Flask app is running."
+    @app.route("/")
+    def home():
+        return "✅ Flask app is running."
 
-@app.route("/run", methods=["GET"])
-def run_scraper():
-    try:
-        url = "https://hk.centanet.com/findproperty/rent"
-        headers = {
-            "User-Agent": "Mozilla/5.0"
-        }
+    @app.route("/run", methods=["GET"])
+    def run_scraper():
+        try:
+            options = Options()
+            options.add_argument("--headless")
+            options.add_argument("--no-sandbox")
+            options.add_argument("--disable-gpu")
+            options.add_argument("--disable-dev-shm-usage")
+            options.add_argument("--window-size=1920x1080")
 
-        resp = requests.get(url, headers=headers)
-        soup = BeautifulSoup(resp.text, "html.parser")
+            driver = webdriver.Chrome(options=options)
+            driver.get("https://hk.centanet.com/findproperty/租")
+            time.sleep(3)
 
-        cards = soup.select("div.card")
-        listings = []
+            soup = BeautifulSoup(driver.page_source, "html.parser")
+            driver.quit()
 
-        for card in cards:
-            title_tag = card.select_one("span.title-lg")
-            if not title_tag:
-                continue  # skip if title not found
+            # === Extracting Sample Titles and Links (Example)
+            cards = soup.select("div.list-card-right")
+            results = []
 
-            title = title_tag.get_text(strip=True)
-            subtitle = card.select_one("div.subtitle").get_text(strip=True) if card.select_one("div.subtitle") else ""
-            rent = card.select_one("div.price span.value").get_text(strip=True) if card.select_one("div.price span.value") else ""
-            area = card.select_one("span.district").get_text(strip=True) if card.select_one("span.district") else ""
-            usable_area = card.select_one("div.area-block.usable-area span.hidden-xs-only")
-            usable_area = usable_area.get_text(strip=True).replace("呎", "") if usable_area else ""
+            for card in cards[:5]:  # Limit to 5 for demo
+                title = card.select_one("span.title-lg")
+                rent = card.select_one("div.price-lg")
+                subtitle = card.select_one("div.subtitle")
+                if title:
+                    results.append({
+                        "title": title.get_text(strip=True),
+                        "rent": rent.get_text(strip=True) if rent else "",
+                        "subtitle": subtitle.get_text(strip=True) if subtitle else ""
+                    })
 
-            construction_area = card.select_one("div.area-block.construction-area span.hidden-xs-only")
-            construction_area = construction_area.get_text(strip=True).replace("呎", "") if construction_area else ""
+            return jsonify({"status": "success", "data": results})
 
-            image_tag = card.select_one("img")
-            image_url = image_tag["src"] if image_tag and image_tag.get("src", "").startswith("http") else ""
+        except Exception as e:
+            return jsonify({"status": "error", "message": str(e)})
 
-            summary = f"{title}\n{subtitle}\n{area} | 實用: {usable_area} 呎 建築: {construction_area} 呎\n租金: ${rent}"
-
-            listings.append({
-                "title": title,
-                "subtitle": subtitle,
-                "rent": rent,
-                "area": area,
-                "usable_area": usable_area,
-                "construction_area": construction_area,
-                "image_url": image_url,
-                "summary": summary
-            })
-
-        return jsonify({"listings": listings})
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    # ✅ This makes it work on Render
+    if __name__ == "__main__":
+        port = int(os.environ.get("PORT", 5000))
+        app.run(host="0.0.0.0", port=port)
