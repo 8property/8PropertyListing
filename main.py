@@ -1,9 +1,10 @@
-    from flask import Flask, jsonify
-    import os
-    import time
-    from bs4 import BeautifulSoup
-    import undetected_chromedriver as uc  # edited!!
-    from selenium.webdriver.chrome.options import Options  # edited!!
+from flask import Flask, jsonify
+import os
+import time
+from bs4 import BeautifulSoup
+import undetected_chromedriver as uc  # edited!!
+from selenium.webdriver.chrome.options import Options  # edited!!
+from selenium.webdriver.chrome.service import Service  # ✅ ADD this near top
 
     app = Flask(__name__)
 
@@ -23,8 +24,10 @@
             options.add_argument("--disable-dev-shm-usage")  # edited!!
             options.add_argument("--window-size=1920,1080")  # edited!!
 
-            driver = uc.Chrome(options=options)  # edited!!
 
+            service = Service("/usr/bin/chromedriver")  # ✅ CHROME DRIVER PATH ON RENDER
+            driver = uc.Chrome(service=service, options=options)  # ✅ FIXED
+            
             base_url = "https://hk.centanet.com/findproperty/list/rent"
             driver.get(base_url)
             time.sleep(3)

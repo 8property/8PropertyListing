@@ -1,0 +1,13 @@
+services:
+- type: web
+  name: centanet-scraper
+  env: python
+  buildCommand: pip install -r requirements.txt
+  startCommand: gunicorn main:app
+  plan: free
+  envVars:
+    - key: GOOGLE_CHROME_BIN
+      value: /usr/bin/google-chrome
+    - key: CHROMEDRIVER_PATH
+      value: /usr/bin/chromedriver
+  
