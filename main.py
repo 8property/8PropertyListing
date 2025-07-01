@@ -14,6 +14,7 @@ def home():
 @app.route("/run", methods=["GET"])
 def run_scraper():
     try:
+        # === Setup headless Chrome ===
         options = Options()
         options.add_argument("--headless")
         options.add_argument("--disable-gpu")
@@ -21,25 +22,24 @@ def run_scraper():
         options.add_argument("--window-size=1920x1080")
 
         driver = webdriver.Chrome(options=options)
-
-        base_url = "https://hk.centanet.com/findproperty/list/rent"
-        driver.get(base_url)
+        driver.get("https://hk.centanet.com/findproperty/list/rent")
         time.sleep(3)
 
         listings_data = []
 
-        # Scroll to trigger lazy load
-        scroll_pause_time = 0.25
-        scroll_increment = 500
-        current_position = 0
-        max_scroll = driver.execute_script("return document.body.scrollHeight")
+        # === Scroll to trigger lazy-loaded data ===
+        scroll_pause = 0.25
+        scroll_y = 500
+        current_y = 0
+        max_y = driver.execute_script("return document.body.scrollHeight")
 
-        while current_position < max_scroll:
-            driver.execute_script(f"window.scrollTo(0, {current_position});")
-            time.sleep(scroll_pause_time)
-            current_position += scroll_increment
-            max_scroll = driver.execute_script("return document.body.scrollHeight")
+        while current_y < max_y:
+            driver.execute_script(f"window.scrollTo(0, {current_y});")
+            time.sleep(scroll_pause)
+            current_y += scroll_y
+            max_y = driver.execute_script("return document.body.scrollHeight")
 
+        # === Parse page ===
         soup = BeautifulSoup(driver.page_source, "html.parser")
         listings = soup.select("div.list")
 
@@ -68,7 +68,7 @@ def run_scraper():
                 image_tag = card.select_one("img")
                 image_url = image_tag.get("src") if image_tag else ""
 
-                summary = f"{title}\n{subtitle}\n{area} | 實用: {usable_area}呎\n建築: {construction_area}呎\n租金: ${rent}"
+                summary = f"{title}\n{subtitle}\n{area} | 實用: {usable_area}呎 建築: {construction_area}呎\n租金: ${rent}"
 
                 listings_data.append({
                     "title": title,
@@ -80,9 +80,10 @@ def run_scraper():
                     "image_url": image_url,
                     "summary": summary
                 })
+
             except Exception as e:
                 listings_data.append({
-                    "title": "❌ Error in card",
+                    "title": "❌ Error parsing listing",
                     "summary": str(e)
                 })
 
