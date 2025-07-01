@@ -44,7 +44,7 @@ def scrape_centanet():
             soup = BeautifulSoup(driver.page_source, "html.parser")
 
             listings = soup.select("div.list")
-            for card in listings:
+            for card in listings[:5]:
                 try:
                     title_tag = card.select_one("span.title-lg")
                     if not title_tag or not title_tag.text.strip():
