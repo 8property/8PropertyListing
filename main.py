@@ -16,6 +16,7 @@ def home():
 def scrape_centanet():
     try:
         options = uc.ChromeOptions()
+        options.binary_location = "/usr/bin/google-chrome"
         options.add_argument("--headless")
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
