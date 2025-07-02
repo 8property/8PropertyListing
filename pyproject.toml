@@ -12,7 +12,6 @@ selenium = "^4.34.0"
 beautifulsoup4 = "^4.13.4"
 undetected-chromedriver = "^3.5.5"
 pandas = "^2.3.0"
-requests = "^2.32.4"
 
 [tool.pyright]
 # https://github.com/microsoft/pyright/blob/main/docs/configuration.md
