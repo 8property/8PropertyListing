@@ -99,7 +99,7 @@ def run_scraper():
         soup = BeautifulSoup(driver.page_source, "html.parser")
         listings = soup.select("div.list")
 
-        for idx, card in enumerate(listings[:2]):
+        for idx, card in enumerate(listings):
             try:
                 title_tag = card.select_one("span.title-lg")
                 if not title_tag or not title_tag.text.strip():
