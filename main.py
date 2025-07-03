@@ -93,7 +93,7 @@ def run_scraper():
         soup = BeautifulSoup(driver.page_source, "html.parser")
         listings = soup.select("div.list")
 
-        for card in listings:
+        for idx, card in enumerate(listings):
             try:
                 title_tag = card.select_one("span.title-lg")
                 if not title_tag or not title_tag.text.strip():
@@ -119,7 +119,7 @@ def run_scraper():
                 image_url = image_tag.get("src") if image_tag else ""
 
                 summary = f"{title}\n{subtitle}\n{area} | 實用: {usable_area}呎 建築: {construction_area}呎\n租金: ${rent}"
-                pic_generated = generate_image_with_photo_overlay(summary, image_url)
+                pic_generated = generate_image_with_photo_overlay(summary, image_url, idx)
 
                 listings_data.append({
                     "title": title,
