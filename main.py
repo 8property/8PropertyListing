@@ -123,7 +123,7 @@ def run_scraper():
 
                 image_tag = card.select_one("img")
                 image_url_raw = image_tag.get("src") if image_tag else ""
-                image_url = image_url_raw.split("?")[0]
+                image_url = image_url_raw.split("?")[0]  # Remove query parameters
                 
                 summary = f"{title}\n{subtitle}\n{area} | 實用: {usable_area}呎 建築: {construction_area}呎\n租金: ${rent}"
                 pic_generated = generate_image_with_photo_overlay(summary, image_url, idx)
