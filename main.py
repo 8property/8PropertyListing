@@ -7,6 +7,8 @@ import os
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 import cloudinary
+import cloudinary.uploader
+
 
 font_path = "NotoSansTC-VariableFont_wght.ttf"
 if not os.path.exists(font_path):
