@@ -4,3 +4,5 @@ selenium==4.14.0
 requests==2.32.4
 gunicorn==21.2.0
 Pillow==10.2.0
+cloudinary==1.38.0
+
