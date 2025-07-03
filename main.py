@@ -23,8 +23,6 @@ def generate_image_with_photo_overlay(text, image_url, index, font=font):
         bg_image = Image.new("RGB", (size, size), (255, 255, 255))
 
     draw = ImageDraw.Draw(bg_image)
-    font_path = "/usr/share/fonts/opentype/noto/NotoSansTC-VariableFont_wght.ttf"
-    font = ImageFont.truetype(font_path, 48)
 
     lines = text.split("\n")
     line_height = draw.textbbox((0, 0), lines[0], font=font)[3] + 10
