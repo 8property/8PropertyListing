@@ -4,6 +4,8 @@ from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
 import time
 import os
+from PIL import Image, ImageDraw, ImageFont
+from io import BytesIO
 
 font_path = "NotoSansTC-VariableFont_wght.ttf"  # Ensure this matches your uploaded filename
 if not os.path.exists(font_path):
