@@ -9,6 +9,11 @@ from io import BytesIO
 import cloudinary
 import cloudinary.uploader
 
+cloudinary.config(
+    cloud_name='dfg1cai07',  # ⚠️ 請改成你的 Cloudinary 名稱
+    api_key='475588673538526',
+    api_secret='YgY9UqhPTxuRdBi7PcFvYnfH4V0'
+)
 
 font_path = "NotoSansTC-VariableFont_wght.ttf"
 if not os.path.exists(font_path):
