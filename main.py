@@ -2,26 +2,13 @@ from flask import Flask, jsonify
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from bs4 import BeautifulSoup
-from PIL import Image, ImageDraw, ImageFont
 import time
 import os
-import requests
-from io import BytesIO
-import cloudinary.uploader
-import cloudinary
 
-# Configure Cloudinary (REPLACE with your credentials)
-cloudinary.config(
-    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
-    api_key=os.getenv("CLOUDINARY_API_KEY"),
-    api_secret=os.getenv("CLOUDINARY_API_SECRET")
-)
-
-app = Flask(__name__)
-
-@app.route("/")
-def home():
-    return "✅ Centanet Rent Scraper with Image Generator is running."
+font_path = "NotoSansTC-VariableFont_wght.ttf"  # Ensure this matches your uploaded filename
+if not os.path.exists(font_path):
+    raise FileNotFoundError("Font file not found.")
+font = ImageFont.truetype(font_path, 48)
 
 def generate_image_with_photo_overlay(text, image_url, index):
     size = 1080
@@ -33,9 +20,7 @@ def generate_image_with_photo_overlay(text, image_url, index):
         bg_image = Image.new("RGB", (size, size), (255, 255, 255))
 
     draw = ImageDraw.Draw(bg_image)
-    font_path = "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"  # Linux Chinese font
-    if not os.path.exists(font_path):
-        font_path = "/System/Library/Fonts/STHeiti Medium.ttc"  # macOS fallback
+    font_path = "/usr/share/fonts/opentype/noto/NotoSansTC-VariableFont_wght.ttf"
     font = ImageFont.truetype(font_path, 48)
 
     lines = text.split("\n")
@@ -58,17 +43,28 @@ def generate_image_with_photo_overlay(text, image_url, index):
     bg_image.convert("RGB").save(image_bytes, format='PNG')
     image_bytes.seek(0)
 
-    upload_response = cloudinary.uploader.upload(image_bytes, public_id=f"centanet_{index}", overwrite=True)
+    upload_response = cloudinary.uploader.upload(
+        image_bytes,
+        public_id=f"centanet_{index}",
+        overwrite=True
+    )
     return upload_response["secure_url"]
+
+app = Flask(__name__)
+
+@app.route("/")
+def home():
+    return "✅ Centanet Rent Scraper is running."
 
 @app.route("/run", methods=["GET"])
 def run_scraper():
     try:
+        # === Setup headless Chrome ===
         options = Options()
         options.add_argument("--headless")
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
+        options.add_argument("--disable-dev-shm-usage")  # Important!
         options.add_argument("--single-process")
         options.add_argument("--window-size=1920x1080")
 
@@ -77,6 +73,8 @@ def run_scraper():
         time.sleep(3)
 
         listings_data = []
+
+        # === Scroll to trigger lazy-loaded data ===
         scroll_pause = 0.25
         scroll_y = 500
         current_y = 0
@@ -88,10 +86,11 @@ def run_scraper():
             current_y += scroll_y
             max_y = driver.execute_script("return document.body.scrollHeight")
 
+        # === Parse page ===
         soup = BeautifulSoup(driver.page_source, "html.parser")
         listings = soup.select("div.list")
 
-        for idx, card in enumerate(listings):
+        for card in listings:
             try:
                 title_tag = card.select_one("span.title-lg")
                 if not title_tag or not title_tag.text.strip():
@@ -100,14 +99,19 @@ def run_scraper():
                 title = title_tag.text.strip()
                 subtitle = card.select_one("span.title-sm")
                 subtitle = subtitle.text.strip() if subtitle else ""
+
                 area = card.select_one("div.area")
                 area = area.text.strip() if area else ""
+
                 usable_tag = card.select_one("div.area-block.usable-area div.num > span.hidden-xs-only")
                 usable_area = usable_tag.get_text(strip=True).replace("呎", "").replace(",", "") if usable_tag else ""
+
                 construction_tag = card.select_one("div.area-block.construction-area div.num > span.hidden-xs-only")
                 construction_area = construction_tag.get_text(strip=True).replace("呎", "").replace(",", "") if construction_tag else ""
+
                 rent_tag = card.select_one("span.price-info")
                 rent = rent_tag.get_text(strip=True).replace(",", "").replace("$", "") if rent_tag else ""
+
                 image_tag = card.select_one("img")
                 image_url = image_tag.get("src") if image_tag else ""
 
