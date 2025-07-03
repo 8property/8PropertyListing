@@ -13,7 +13,7 @@ if not os.path.exists(font_path):
     raise FileNotFoundError("Font file not found.")
 font = ImageFont.truetype(font_path, 48)
 
-def generate_image_with_photo_overlay(text, image_url, index, font=FONT):
+def generate_image_with_photo_overlay(text, image_url, index, font=font):
     size = 1080
     try:
         response = requests.get(image_url, timeout=5)
