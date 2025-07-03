@@ -6,6 +6,7 @@ import time
 import os
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
+import cloudinary
 
 font_path = "NotoSansTC-VariableFont_wght.ttf"  # Ensure this matches your uploaded filename
 if not os.path.exists(font_path):
