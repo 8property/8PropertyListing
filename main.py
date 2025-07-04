@@ -23,7 +23,7 @@ font = ImageFont.truetype(font_path, 48)
 def generate_image_with_photo_overlay(text, image_url, index, font=font):
     size = 1080
     try:
-        response = requests.get(image_url, timeout=5)
+        response = requests.get(image_url.strip(), timeout=5)
         bg_image = Image.open(BytesIO(response.content)).convert("RGB")
         bg_image = bg_image.resize((size, size))
     except:
