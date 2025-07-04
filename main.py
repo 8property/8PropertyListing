@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 import cloudinary
 import cloudinary.uploader
-
+import requests
 cloudinary.config(
     cloud_name='dfg1cai07',  # ⚠️ 請改成你的 Cloudinary 名稱
     api_key='475588673538526',
