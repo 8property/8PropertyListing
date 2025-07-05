@@ -120,7 +120,7 @@ def run_scraper():
 
                 rent_tag = card.select_one("span.price-info")
                 rent = rent_tag.get_text(strip=True).replace(",", "").replace("$", "") if rent_tag else ""
-
+                rent = f"${int(rent):,}" if rent else ""
                 image_tags = card.select("img")
 
                 # Loop through and pick the first .jpg image
