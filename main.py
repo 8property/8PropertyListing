@@ -125,12 +125,11 @@ def run_scraper():
 
                 # Loop through and pick the first .jpg image
                 image_url = ""
-                image_tag = card.select_one("div.img-wrap img.el-image__inner")
-
-                if image_tag:
-                    src = image_tag.get("src", "").split("?")[0].strip().lower()
-                    if src.endswith(".jpg") or src.endswith(".jpeg"):
-                        image_url = src
+                for tag in image_tags:
+                    src = tag.get("src", "")
+                    if ".jpg" in src and src.startswith("http"):
+                        image_url = src.split("?")[0].strip()  # clean URL
+                        break  # stop at first valid .jpg
                 
                 summary = f"{title}\n{subtitle}\n{area} | 實用: {usable_area}呎 \n租金: ${rent}"
                 pic_generated = generate_image_with_photo_overlay(summary, image_url, idx)
