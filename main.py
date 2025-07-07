@@ -13,9 +13,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
-WebDriverWait(driver, 10).until(
-    EC.presence_of_element_located((By.CSS_SELECTOR, "div.list img"))
-)
 
 cloudinary.config(
     cloud_name='dfg1cai07',  # ⚠️ 請改成你的 Cloudinary 名稱
@@ -103,6 +100,9 @@ def run_scraper():
             current_y += scroll_y
             max_y = driver.execute_script("return document.body.scrollHeight")
 
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "div.list img"))
+        )
         # === Parse page ===
         soup = BeautifulSoup(driver.page_source, "html.parser")
         listings = soup.select("div.list")
