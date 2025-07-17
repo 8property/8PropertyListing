@@ -84,28 +84,7 @@ def run_scraper():
 
         driver = webdriver.Chrome(options=options)
         driver.get("https://hk.centanet.com/findproperty/list/rent")
-        #time.sleep(3)
-        WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.CSS_SELECTOR, ".el-dropdown-link"))
-        ).click()
-
-        # 2. Wait for the dropdown options to appear
-        WebDriverWait(driver, 10).until(
-            EC.visibility_of_element_located((By.CSS_SELECTOR, ".el-dropdown-menu"))
-        )
-
-        # 3. Select "最新放盤" from the <li> list
-        dropdown_items = driver.find_elements(By.CSS_SELECTOR, "ul.el-dropdown-menu li")
-
-        for item in dropdown_items:
-            try:
-                text = item.text.strip()
-                if "最新放盤" in text:
-                    item.click()
-                    print("✅ Selected 最新放盤")
-                    break
-            except Exception as e:
-                print("⚠️ Error handling dropdown item:", e)
+        time.sleep(3)
 
         listings_data = []
 
