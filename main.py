@@ -12,6 +12,10 @@ import requests
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.action_chains import ActionChains
+
+# 1. Wait for dropdown trigger and click
+
 
 
 cloudinary.config(
@@ -84,7 +88,36 @@ def run_scraper():
 
         driver = webdriver.Chrome(options=options)
         driver.get("https://hk.centanet.com/findproperty/list/rent")
-        time.sleep(3)
+
+        dropdown_trigger = WebDriverWait(driver, 15).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, ".el-dropdown-link"))
+        )
+        ActionChains(driver).move_to_element(dropdown_trigger).click().perform()
+
+        # 2. Wait for menu to appear (dynamic render)
+        WebDriverWait(driver, 10).until(
+            EC.visibility_of_element_located((By.CSS_SELECTOR, "ul.el-dropdown-menu"))
+        )
+
+        # 3. Find and click the correct dropdown option
+        dropdown_items = driver.find_elements(By.CSS_SELECTOR, "ul.el-dropdown-menu li")
+
+        found = False
+        for item in dropdown_items:
+            try:
+                text = item.text.strip()
+                print("📌 Found dropdown option:", text)
+                if "最新放盤" in text:
+                    item.click()
+                    print("✅ Clicked 最新放盤")
+                    found = True
+                    break
+            except Exception as e:
+                print("⚠️ Error reading item:", e)
+
+        if not found:
+            print("❌ Couldn't find '最新放盤' in dropdown menu")
+
 
         listings_data = []
 
