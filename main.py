@@ -151,16 +151,17 @@ def run_scraper():
                 rent = f"${int(rent):,}" if rent else ""
 
                 image_url = ""
-                img_tag = card.select_one("img.el-image__inner") or card.select_one("img")
+                img_tag = card.select_one("div.img-wrap img") or card.select_one("img")
                 if img_tag:
-                    src = img_tag.get("data-src") or img_tag.get("src")
-                    if src and ".jpg" in src and src.startswith("http"):
-                        image_url = src.split("?")[0].strip()
-                        
-                if not image_url:
-                    print(f"⛔ Skipped listing #{idx} due to missing image URL")
-                    continue
-
+                    try:
+                        src = img_tag.get("data-src") or img_tag.get("src", "")
+                        if ".jpg" in src and src.startswith("http"):
+                            image_url = src.split("?")[0].strip()
+                    except Exception as e:
+                        print(f"⚠️ Failed to extract image src in listing #{idx}: {e}")
+                else:
+                    print(f"⛔ No <img> tag found in listing #{idx}")
+                    
                 summary = f"{title}\n{subtitle}\n{area} | 實用: {usable_area}呎 \n租金: {rent}"
                 pic_generated = generate_image_with_photo_overlay(summary, image_url, idx)
 
