@@ -117,8 +117,9 @@ def run_scraper():
                 time.sleep(5)
                 break
 
-        driver.execute_script("window.scrollBy(0, 1000);")
-        time.sleep(1)  # Give JS time to load images
+        for i in range(5):  # Adjust based on how many listings per screen
+            driver.execute_script(f"window.scrollBy(0, {400 * (i+1)});")
+            time.sleep(1.2)
 
         WebDriverWait(driver, 10).until(
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.list"))
