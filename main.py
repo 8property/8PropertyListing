@@ -112,17 +112,17 @@ def run_scraper():
 
         # ✅ Scroll until at least 15 listings with images are loaded
         scroll_pause = 0.2
-        max_scrolls = 20
+        max_scrolls = 15
         for i in range(max_scrolls):
             driver.execute_script("window.scrollBy(0, 1000);")
             time.sleep(scroll_pause)
-            soup = BeautifulSoup(driver.page_source, "html.parser")
-            listings = soup.select("div.list")
-            valid_images = [
-                card.select_one("div.el-image.img-holder img")
-                for card in listings if card.select_one("div.el-image.img-holder img")
-            ]
-            print(f"📷 Listings: {len(listings)}, with image: {len(valid_images)}")
+            # soup = BeautifulSoup(driver.page_source, "html.parser")
+            # listings = soup.select("div.list")
+            # valid_images = [
+            #     card.select_one("div.el-image.img-holder img")
+            #     for card in listings if card.select_one("div.el-image.img-holder img")
+            # ]
+            # print(f"📷 Listings: {len(listings)}, with image: {len(valid_images)}")
 
             if len(valid_images) >= 15:
                 break
