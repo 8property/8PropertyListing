@@ -1,24 +1,24 @@
 from flask import Flask, jsonify
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
-import time
-import os
+import time, os, requests
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 import cloudinary
 import cloudinary.uploader
-import requests
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
 
+# === Cloudinary Config ===
 cloudinary.config(
-    cloud_name='dfg1cai07',  # ⚠️ 請改成你的 Cloudinary 名稱
+    cloud_name='dfg1cai07',
     api_key='475588673538526',
     api_secret='YgY9UqhPTxuRdBi7PcFvYnfH4V0'
 )
 
+# === Font Config ===
 font_path = "NotoSansTC-VariableFont_wght.ttf"
 if not os.path.exists(font_path):
     raise FileNotFoundError("Font file not found.")
@@ -28,24 +28,20 @@ def generate_image_with_photo_overlay(text, image_url, index):
     size = 1080
     try:
         response = requests.get(image_url.strip(), timeout=5)
-        bg_image = Image.open(BytesIO(response.content)).convert("RGB")
-        bg_image = bg_image.resize((size, size))
+        bg_image = Image.open(BytesIO(response.content)).convert("RGB").resize((size, size))
     except:
         bg_image = Image.new("RGB", (size, size), (255, 255, 255))
 
     draw = ImageDraw.Draw(bg_image)
-
     lines = text.split("\n")
     line_height = draw.textbbox((0, 0), lines[0], font=font)[3] + 10
     total_height = line_height * len(lines)
     text_y = size - total_height - 50
 
-    overlay = Image.new("RGBA", bg_image.size, (0, 0, 0, 0))
-    overlay_draw = ImageDraw.Draw(overlay)
-    overlay_draw.rectangle([(0, text_y - 20), (size, text_y + total_height + 20)], fill=(0, 0, 0, 150))
+    overlay = Image.new("RGBA", bg_image.size, (0, 0, 0, 150))
+    ImageDraw.Draw(overlay).rectangle([(0, text_y - 20), (size, text_y + total_height + 20)], fill=(0, 0, 0, 150))
     bg_image = Image.alpha_composite(bg_image.convert("RGBA"), overlay)
 
-    draw = ImageDraw.Draw(bg_image)
     for line in lines:
         text_width = draw.textbbox((0, 0), line, font=font)[2]
         draw.text(((size - text_width) // 2, text_y), line, font=font, fill=(255, 255, 255))
@@ -62,7 +58,7 @@ def generate_image_with_photo_overlay(text, image_url, index):
     )
     return upload_response["secure_url"]
 
-
+# === Flask App ===
 app = Flask(__name__)
 
 @app.route("/")
@@ -94,32 +90,24 @@ def run_scraper():
         except:
             print("ℹ️ No overlay found")
 
-        # ✅ Click dropdown trigger using JS
+        # ✅ Click dropdown & select 最新放盤
         dropdown_trigger = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, ".title-sort-switch.hidden-xs-only .left .el-dropdown-link"))
         )
         driver.execute_script("arguments[0].click();", dropdown_trigger)
         print("✅ Clicked dropdown trigger")
-
-        # ✅ Wait for dropdown options to show
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "div.dropdown-content-mobile"))
-        )
         time.sleep(0.5)
 
-        # ✅ Click on 最新放盤
         dropdown_items = driver.find_elements(By.CSS_SELECTOR, "div.dropdown-content-mobile li")
         for item in dropdown_items:
             if "最新放盤" in item.text.strip():
                 driver.execute_script("arguments[0].click();", item)
                 print("✅ Clicked 最新放盤")
-                time.sleep(3)  # let listings load
+                time.sleep(3)
                 break
 
         # ✅ Scroll until at least 15 listings are loaded
         max_scrolls = 20
-        scroll_pause = 1.2
-
         for i in range(max_scrolls):
             soup = BeautifulSoup(driver.page_source, "html.parser")
             listings = soup.select("div.list")
@@ -127,18 +115,11 @@ def run_scraper():
             if len(listings) >= 15:
                 break
             driver.execute_script("window.scrollBy(0, 600);")
-            time.sleep(scroll_pause)
+            time.sleep(1.2)
 
-        # ✅ After scrolling, finalize soup & listings
+        # ✅ Final parsing
         soup = BeautifulSoup(driver.page_source, "html.parser")
         listings = soup.select("div.list")
-            
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.list"))
-        )
-
-        # soup = BeautifulSoup(driver.page_source, "html.parser")
-        # listings = soup.select("div.list")
 
         results = []
         for idx, card in enumerate(listings[:15]):
@@ -160,18 +141,17 @@ def run_scraper():
                 rent = rent_tag.get_text(strip=True).replace(",", "").replace("$", "") if rent_tag else ""
                 rent = f"${int(rent):,}" if rent else ""
 
-                # Loop through and pick the first .jpg image
                 image_url = ""
-                img_tag = card.select_one("img.el-image__inner")
+                img_tag = card.select_one("img.el-image__inner") or card.select_one("img")
                 if img_tag:
-                    src = img_tag.get("data-src") or img_tag.get("src", "")
-                    if ".jpg" in src and src.startswith("http"):
+                    src = img_tag.get("data-src") or img_tag.get("src")
+                    if src and ".jpg" in src and src.startswith("http"):
                         image_url = src.split("?")[0].strip()
 
                 if not image_url:
                     print(f"⛔ Skipped listing #{idx} due to missing image URL")
                     continue
-                    
+
                 summary = f"{title}\n{subtitle}\n{area} | 實用: {usable_area}呎 \n租金: {rent}"
                 pic_generated = generate_image_with_photo_overlay(summary, image_url, idx)
 
