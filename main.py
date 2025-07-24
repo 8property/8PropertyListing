@@ -110,13 +110,13 @@ def run_scraper():
         # ✅ Click on 最新放盤
         dropdown_items = driver.find_elements(By.CSS_SELECTOR, "div.dropdown-content-mobile li")
         for item in dropdown_items:
-            text = item.text.strip()
-            if "最新放盤" in text:
+            if "最新放盤" in item.text.strip():
                 driver.execute_script("arguments[0].click();", item)
                 print("✅ Clicked 最新放盤")
-                time.sleep(5)
+                time.sleep(3)  # let listings load
                 break
 
+        # ✅ Scroll until at least 15 listings are loaded
         max_scrolls = 20
         scroll_pause = 1.2
 
@@ -126,15 +126,19 @@ def run_scraper():
             print(f"🔍 Found {len(listings)} listings after {i+1} scrolls")
             if len(listings) >= 15:
                 break
-            driver.execute_script("window.scrollBy(0, 500);")
+            driver.execute_script("window.scrollBy(0, 600);")
             time.sleep(scroll_pause)
+
+        # ✅ After scrolling, finalize soup & listings
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+        listings = soup.select("div.list")
             
         WebDriverWait(driver, 10).until(
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.list"))
         )
 
-        soup = BeautifulSoup(driver.page_source, "html.parser")
-        listings = soup.select("div.list")
+        # soup = BeautifulSoup(driver.page_source, "html.parser")
+        # listings = soup.select("div.list")
 
         results = []
         for idx, card in enumerate(listings[:15]):
