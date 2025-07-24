@@ -1,14 +1,67 @@
 from flask import Flask, jsonify
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.common.by import By
+from bs4 import BeautifulSoup
+import time
+import os
+from PIL import Image, ImageDraw, ImageFont
+from io import BytesIO
+import cloudinary
+import cloudinary.uploader
+import requests
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from bs4 import BeautifulSoup
-import os
-import time
-from shutil import which
+from selenium.webdriver.common.by import By
+
+cloudinary.config(
+    cloud_name='dfg1cai07',  # ⚠️ 請改成你的 Cloudinary 名稱
+    api_key='475588673538526',
+    api_secret='YgY9UqhPTxuRdBi7PcFvYnfH4V0'
+)
+
+font_path = "NotoSansTC-VariableFont_wght.ttf"
+if not os.path.exists(font_path):
+    raise FileNotFoundError("Font file not found.")
+font = ImageFont.truetype(font_path, 48)
+
+def generate_image_with_photo_overlay(text, image_url, index):
+    size = 1080
+    try:
+        response = requests.get(image_url.strip(), timeout=5)
+        bg_image = Image.open(BytesIO(response.content)).convert("RGB")
+        bg_image = bg_image.resize((size, size))
+    except:
+        bg_image = Image.new("RGB", (size, size), (255, 255, 255))
+
+    draw = ImageDraw.Draw(bg_image)
+
+    lines = text.split("\n")
+    line_height = draw.textbbox((0, 0), lines[0], font=font)[3] + 10
+    total_height = line_height * len(lines)
+    text_y = size - total_height - 50
+
+    overlay = Image.new("RGBA", bg_image.size, (0, 0, 0, 0))
+    overlay_draw = ImageDraw.Draw(overlay)
+    overlay_draw.rectangle([(0, text_y - 20), (size, text_y + total_height + 20)], fill=(0, 0, 0, 150))
+    bg_image = Image.alpha_composite(bg_image.convert("RGBA"), overlay)
+
+    draw = ImageDraw.Draw(bg_image)
+    for line in lines:
+        text_width = draw.textbbox((0, 0), line, font=font)[2]
+        draw.text(((size - text_width) // 2, text_y), line, font=font, fill=(255, 255, 255))
+        text_y += line_height
+
+    image_bytes = BytesIO()
+    bg_image.convert("RGB").save(image_bytes, format='PNG')
+    image_bytes.seek(0)
+
+    upload_response = cloudinary.uploader.upload(
+        image_bytes,
+        public_id=f"centanet_{index}",
+        overwrite=True
+    )
+    return upload_response["secure_url"]
+
 
 app = Flask(__name__)
 
