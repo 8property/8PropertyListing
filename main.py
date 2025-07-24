@@ -80,18 +80,36 @@ def run_scraper():
         listings = soup.select("div.list")
 
         results = []
-        for card in listings[:5]:
-            title = card.select_one("span.title-lg")
-            subtitle = card.select_one("span.title-sm")
-            area = card.select_one("div.area")
-            rent = card.select_one("span.price-info")
+        for idx, card in enumerate(listings[:15]):
+            try:
+                title = card.select_one("span.title-lg")
+                subtitle = card.select_one("span.title-sm")
+                area = card.select_one("div.area")
 
-            results.append({
-                "title": title.text.strip() if title else "",
-                "subtitle": subtitle.text.strip() if subtitle else "",
-                "area": area.text.strip() if area else "",
-                "rent": rent.text.strip() if rent else ""
-            })
+                usable_tag = card.select_one("div.area-block.usable-area div.num > span.hidden-xs-only")
+                construction_tag = card.select_one("div.area-block.construction-area div.num > span.hidden-xs-only")
+
+                rent_tag = card.select_one("span.price-info")
+                rent = rent_tag.get_text(strip=True).replace(",", "").replace("$", "") if rent_tag else ""
+                rent = f"{int(rent):,}" if rent.isdigit() else rent
+
+                # Image
+                image_url = ""
+                for img_tag in card.select("img"):
+                    src = img_tag.get("src", "")
+                    if ".jpg" in src and src.startswith("http"):
+                        image_url = src.split("?")[0]
+                        break
+
+                results.append({
+                    "title": title.text.strip() if title else "",
+                    "subtitle": subtitle.text.strip() if subtitle else "",
+                    "area": area.text.strip() if area else "",
+                    "usable_area": usable_tag.text.strip().replace("呎", "") if usable_tag else "",
+                    "construction_area": construction_tag.text.strip().replace("呎", "") if construction_tag else "",
+                    "rent": f"${rent}" if rent else "",
+                    "image_url": image_url
+                })
 
         driver.quit()
         return jsonify({"listings": results})
