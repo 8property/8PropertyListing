@@ -143,6 +143,8 @@ def run_scraper():
                 rent_tag = card.select_one("span.price-info")
                 rent = rent_tag.get_text(strip=True).replace(",", "").replace("$", "") if rent_tag else ""
                 rent = f"${int(rent):,}" if rent else ""
+
+                # Loop through and pick the first .jpg image
                 image_tags = card.select("img")
 
                 # Loop through and pick the first .jpg image
@@ -153,9 +155,10 @@ def run_scraper():
                         image_url = src.split("?")[0].strip()
                         break
 
-                # if not image_url:
-                #     print(f"⛔ Skipped listing #{idx} due to missing image URL")
-                #     continue
+                # ✅ Skip this listing if no valid image found
+                if not image_url:
+                    print(f"⛔ Skipped listing #{idx} due to missing image URL")
+                    continue
 
                 summary = f"{title}\n{subtitle}\n{area} | 實用: {usable_area}呎 \n租金: {rent}"
                 pic_generated = generate_image_with_photo_overlay(summary, image_url, idx)
