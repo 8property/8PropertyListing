@@ -1,208 +1,94 @@
 from flask import Flask, jsonify
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
-from bs4 import BeautifulSoup
-import time
-import os
-from PIL import Image, ImageDraw, ImageFont
-from io import BytesIO
-import cloudinary
-import cloudinary.uploader
-import requests
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from bs4 import BeautifulSoup
+import os
+import time
+from shutil import which
 
-# --- Cloudinary Config ---
-cloudinary.config(
-    cloud_name='dfg1cai07',
-    api_key='475588673538526',
-    api_secret='YgY9UqhPTxuRdBi7PcFvYnfH4V0'
-)
-
-# --- Font Setup ---
-font_path = "NotoSansTC-VariableFont_wght.ttf"
-if not os.path.exists(font_path):
-    raise FileNotFoundError("Font file not found.")
-font = ImageFont.truetype(font_path, 48)
-
-# --- Image Generation ---
-def generate_image_with_photo_overlay(text, image_url, index):
-    size = 1080
-    try:
-        response = requests.get(image_url.strip(), timeout=5)
-        bg_image = Image.open(BytesIO(response.content)).convert("RGB")
-        bg_image = bg_image.resize((size, size))
-    except:
-        bg_image = Image.new("RGB", (size, size), (255, 255, 255))
-
-    draw = ImageDraw.Draw(bg_image)
-    lines = text.split("\n")
-    line_height = draw.textbbox((0, 0), lines[0], font=font)[3] + 10
-    total_height = line_height * len(lines)
-    text_y = size - total_height - 50
-
-    overlay = Image.new("RGBA", bg_image.size, (0, 0, 0, 0))
-    overlay_draw = ImageDraw.Draw(overlay)
-    overlay_draw.rectangle([(0, text_y - 20), (size, text_y + total_height + 20)], fill=(0, 0, 0, 150))
-    bg_image = Image.alpha_composite(bg_image.convert("RGBA"), overlay)
-
-    draw = ImageDraw.Draw(bg_image)
-    for line in lines:
-        text_width = draw.textbbox((0, 0), line, font=font)[2]
-        draw.text(((size - text_width) // 2, text_y), line, font=font, fill=(255, 255, 255))
-        text_y += line_height
-
-    image_bytes = BytesIO()
-    bg_image.convert("RGB").save(image_bytes, format='PNG')
-    image_bytes.seek(0)
-
-    upload_response = cloudinary.uploader.upload(
-        image_bytes,
-        public_id=f"centanet_{index}",
-        overwrite=True
-    )
-    return upload_response["secure_url"]
-
-# --- Flask App Setup ---
 app = Flask(__name__)
 
 @app.route("/")
 def home():
-    return "✅ Centanet Rent Scraper is running."
+    return "✅ Centanet scraper is running."
 
 @app.route("/run", methods=["GET"])
 def run_scraper():
     try:
+        # === Setup Chrome ===
         options = Options()
         options.page_load_strategy = "eager"
-        # options.add_argument("--headless")  # Uncomment for deployment
+        # options.add_argument("--headless")  # Keep off for debugging
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--single-process")
         options.add_argument("--window-size=1920x1080")
+        driver = webdriver.Chrome(service=Service(which("chromedriver")), options=options)
 
-        driver = webdriver.Chrome(options=options)
         driver.get("https://hk.centanet.com/findproperty/list/rent")
 
-        # === Step 1: Click the dropdown trigger ===
+        # ✅ Step 1: Click the dropdown
         dropdown_trigger = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, ".title-sort-switch.hidden-xs-only .left .el-dropdown-link"))
         )
         dropdown_trigger.click()
         print("✅ Clicked dropdown trigger")
 
-        # === Step 2: Wait for dynamic dropdown to appear ===
+        # ✅ Step 2: Wait for dropdown content
         WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "div.dropdown-content-mobile"))
         )
         print("✅ Dropdown content loaded")
-        time.sleep(1)
 
-        # === Step 3: Click '最新放盤' from dropdown ===
-        found = False
-        for i in range(10):
-            try:
-                items = driver.find_elements(By.CSS_SELECTOR, "div.dropdown-content-mobile li")
-                item = items[i]
-                text = item.text.strip()
-                print(f"📌 Option: {text}")
-                if "最新放盤" in text:
-                    driver.execute_script("arguments[0].click();", item)
-                    print("✅ Clicked 最新放盤")
-                    found = True
-                    break
-            except Exception as e:
-                print("⚠️ Error reading dropdown item:", e)
+        time.sleep(1)  # Ensure content has loaded fully
 
-        if not found:
-            print("❌ 最新放盤 not found in dropdown")
+        # ✅ Step 3: Find and click '最新放盤'
+        dropdown_items = driver.find_elements(By.CSS_SELECTOR, "div.dropdown-content-mobile li")
+        for i in range(len(dropdown_items)):
+            item = driver.find_elements(By.CSS_SELECTOR, "div.dropdown-content-mobile li")[i]  # re-fetch each time
+            text = item.text.strip()
+            print(f"📌 Option: {text}")
+            if "最新放盤" in text:
+                driver.execute_script("arguments[0].click();", item)
+                print("✅ Clicked 最新放盤")
+                break
+        else:
+            print("❌ 最新放盤 not found")
 
-        # === Scroll to trigger lazy-load ===
-        scroll_pause = 0.25
-        scroll_y = 500
-        current_y = 0
-        max_y = driver.execute_script("return document.body.scrollHeight")
-        while current_y < max_y:
-            driver.execute_script(f"window.scrollTo(0, {current_y});")
-            time.sleep(scroll_pause)
-            current_y += scroll_y
-            max_y = driver.execute_script("return document.body.scrollHeight")
-
+        # ✅ Confirm new results have loaded (e.g. by waiting for cards)
         WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, "div.list img"))
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.list"))
         )
 
-        # === Scraping ===
+        # ✅ Step 4: Scrape listings
         soup = BeautifulSoup(driver.page_source, "html.parser")
         listings = soup.select("div.list")
-        listings_data = []
 
-        for idx, card in enumerate(listings):
-            try:
-                title_tag = card.select_one("span.title-lg")
-                if not title_tag or not title_tag.text.strip():
-                    continue
+        results = []
+        for card in listings[:5]:  # Limit to first 5 for demo
+            title = card.select_one("span.title-lg")
+            subtitle = card.select_one("span.title-sm")
+            area = card.select_one("div.area")
+            rent = card.select_one("span.price-info")
 
-                title = title_tag.text.strip()
-                subtitle = card.select_one("span.title-sm")
-                subtitle = subtitle.text.strip() if subtitle else ""
-
-                area = card.select_one("div.area")
-                area = area.text.strip() if area else ""
-
-                usable_tag = card.select_one("div.area-block.usable-area div.num > span.hidden-xs-only")
-                usable_area = usable_tag.get_text(strip=True).replace("呎", "").replace(",", "") if usable_tag else ""
-
-                construction_tag = card.select_one("div.area-block.construction-area div.num > span.hidden-xs-only")
-                construction_area = construction_tag.get_text(strip=True).replace("呎", "").replace(",", "") if construction_tag else ""
-
-                rent_tag = card.select_one("span.price-info")
-                rent = rent_tag.get_text(strip=True).replace(",", "").replace("$", "") if rent_tag else ""
-                rent = f"${int(rent):,}" if rent else ""
-
-                image_tags = card.select("img")
-                image_url = ""
-                for tag in image_tags:
-                    src = tag.get("src", "")
-                    if ".jpg" in src and src.startswith("http"):
-                        image_url = src.split("?")[0].strip()
-                        break
-
-                if not image_url:
-                    print(f"⛔ Skipped listing #{idx} due to missing image")
-                    continue
-
-                summary = f"{title}\n{subtitle}\n{area} | 實用: {usable_area}呎 \n租金: {rent}"
-                pic_generated = generate_image_with_photo_overlay(summary, image_url, idx)
-
-                listings_data.append({
-                    "title": title,
-                    "subtitle": subtitle,
-                    "area": area,
-                    "usable_area": usable_area,
-                    "construction_area": construction_area,
-                    "rent": rent,
-                    "image_url": image_url,
-                    "summary": summary,
-                    "pic_generated": pic_generated
-                })
-
-            except Exception as e:
-                listings_data.append({
-                    "title": "❌ Error parsing listing",
-                    "summary": str(e)
-                })
+            results.append({
+                "title": title.text.strip() if title else "",
+                "subtitle": subtitle.text.strip() if subtitle else "",
+                "area": area.text.strip() if area else "",
+                "rent": rent.text.strip() if rent else ""
+            })
 
         driver.quit()
-        return jsonify({"listings": listings_data})
+        return jsonify({"listings": results})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- Run App ---
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
