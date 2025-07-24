@@ -117,9 +117,17 @@ def run_scraper():
                 time.sleep(5)
                 break
 
-        for i in range(16):  # ~6 scrolls to cover ~15 listings
-            driver.execute_script(f"window.scrollBy(0, 500);")
-            time.sleep(1.2)
+        max_scrolls = 20
+        scroll_pause = 1.2
+
+        for i in range(max_scrolls):
+            soup = BeautifulSoup(driver.page_source, "html.parser")
+            listings = soup.select("div.list")
+            print(f"🔍 Found {len(listings)} listings after {i+1} scrolls")
+            if len(listings) >= 15:
+                break
+            driver.execute_script("window.scrollBy(0, 500);")
+            time.sleep(scroll_pause)
             
         WebDriverWait(driver, 10).until(
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.list"))
