@@ -117,10 +117,10 @@ def run_scraper():
                 time.sleep(5)
                 break
 
-        for i in range(5):  # Adjust based on how many listings per screen
-            driver.execute_script(f"window.scrollBy(0, {400 * (i+1)});")
+        for i in range(6):  # ~6 scrolls to cover ~15 listings
+            driver.execute_script(f"window.scrollBy(0, 500);")
             time.sleep(1.2)
-
+            
         WebDriverWait(driver, 10).until(
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.list"))
         )
