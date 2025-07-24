@@ -81,8 +81,7 @@ def run_scraper():
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--window-size=1920x1080")
-        driver = webdriver.Chrome(service=Service(which("chromedriver")), options=options)
-
+        driver = webdriver.Chrome(options=options)
         driver.get("https://hk.centanet.com/findproperty/list/rent")
 
         # ✅ Remove overlay if it exists
