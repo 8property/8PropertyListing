@@ -103,14 +103,14 @@ def run_scraper():
             if "最新放盤" in item.text.strip():
                 driver.execute_script("arguments[0].click();", item)
                 print("✅ Clicked 最新放盤")
-                time.sleep(3)
+                time.sleep(5)
                 break
 
         # ✅ Scroll until at least 15 listings with images are loaded
-        scroll_pause = 1.2
-        max_scrolls = 30
+        scroll_pause = 0.2
+        max_scrolls = 20
         for i in range(max_scrolls):
-            driver.execute_script("window.scrollBy(0, 600);")
+            driver.execute_script("window.scrollBy(0, 1000);")
             time.sleep(scroll_pause)
             soup = BeautifulSoup(driver.page_source, "html.parser")
             listings = soup.select("div.list")
