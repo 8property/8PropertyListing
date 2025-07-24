@@ -1,201 +1,157 @@
-from flask import Flask, jsonify
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
-from bs4 import BeautifulSoup
-import time, os, requests
-from PIL import Image, ImageDraw, ImageFont
-from threading import Thread
-from io import BytesIO
-import cloudinary
-import cloudinary.uploader
+    from flask import Flask, jsonify
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.common.by import By
+    from bs4 import BeautifulSoup
+    import time, os, requests
+    from PIL import Image, ImageDraw, ImageFont
+    from threading import Thread
+    from io import BytesIO
+    import cloudinary
+    import cloudinary.uploader
 
-# === Cloudinary Config ===
-cloudinary.config(
-    cloud_name='dfg1cai07',
-    api_key='475588673538526',
-    api_secret='YgY9UqhPTxuRdBi7PcFvYnfH4V0'
-)
-
-# === Font Config ===
-font_path = "NotoSansTC-VariableFont_wght.ttf"
-if not os.path.exists(font_path):
-    raise FileNotFoundError("Font file not found.")
-font = ImageFont.truetype(font_path, 48)
-
-def generate_image_with_photo_overlay(text, image_url, index):
-    size = 1080
-    try:
-        response = requests.get(image_url.strip(), timeout=5)
-        bg_image = Image.open(BytesIO(response.content)).convert("RGB").resize((size, size))
-    except:
-        bg_image = Image.new("RGB", (size, size), (255, 255, 255))
-
-    draw = ImageDraw.Draw(bg_image)
-    lines = text.split("\n")
-    line_height = draw.textbbox((0, 0), lines[0], font=font)[3] + 10
-    total_height = line_height * len(lines)
-    text_y = size - total_height - 50
-
-    overlay = Image.new("RGBA", bg_image.size, (0, 0, 0, 150))
-    ImageDraw.Draw(overlay).rectangle([(0, text_y - 20), (size, text_y + total_height + 20)], fill=(0, 0, 0, 150))
-    bg_image = Image.alpha_composite(bg_image.convert("RGBA"), overlay)
-
-    for line in lines:
-        text_width = draw.textbbox((0, 0), line, font=font)[2]
-        draw.text(((size - text_width) // 2, text_y), line, font=font, fill=(255, 255, 255))
-        text_y += line_height
-
-    image_bytes = BytesIO()
-    bg_image.convert("RGB").save(image_bytes, format='PNG')
-    image_bytes.seek(0)
-
-    upload_response = cloudinary.uploader.upload(
-        image_bytes,
-        public_id=f"centanet_{index}",
-        overwrite=True
+    # === Cloudinary Config ===
+    cloudinary.config(
+        cloud_name='dfg1cai07',
+        api_key='475588673538526',
+        api_secret='YgY9UqhPTxuRdBi7PcFvYnfH4V0'
     )
-    return upload_response["secure_url"]
 
-# === Flask App ===
-app = Flask(__name__)
+    # === Font Config ===
+    font_path = "NotoSansTC-VariableFont_wght.ttf"
+    font = ImageFont.truetype(font_path, 48)
 
-@app.route("/")
-def home():
-    return "✅ Centanet scraper is running."
+    app = Flask(__name__)
 
-@app.route("/run", methods=["GET"])
-def run_scraper():
-    driver = None
-    try:
-        # === Setup Chrome ===
+    def generate_image_with_photo_overlay(text, image_url, index):
+        size = 1080
+        try:
+            response = requests.get(image_url.strip(), timeout=5)
+            bg_image = Image.open(BytesIO(response.content)).convert("RGB").resize((size, size))
+        except:
+            bg_image = Image.new("RGB", (size, size), (255, 255, 255))
+
+        draw = ImageDraw.Draw(bg_image)
+        lines = text.split("\n")
+        line_height = draw.textbbox((0, 0), lines[0], font=font)[3] + 10
+        total_height = line_height * len(lines)
+        text_y = size - total_height - 50
+
+        overlay = Image.new("RGBA", bg_image.size, (0, 0, 0, 150))
+        ImageDraw.Draw(overlay).rectangle([(0, text_y - 20), (size, text_y + total_height + 20)], fill=(0, 0, 0, 150))
+        bg_image = Image.alpha_composite(bg_image.convert("RGBA"), overlay)
+
+        for line in lines:
+            text_width = draw.textbbox((0, 0), line, font=font)[2]
+            draw.text(((size - text_width) // 2, text_y), line, font=font, fill=(255, 255, 255))
+            text_y += line_height
+
+        image_bytes = BytesIO()
+        bg_image.convert("RGB").save(image_bytes, format='PNG')
+        image_bytes.seek(0)
+
+        upload_response = cloudinary.uploader.upload(
+            image_bytes,
+            public_id=f"centanet_{index}",
+            overwrite=True
+        )
+        return upload_response["secure_url"]
+
+    def scrape_listings():
         options = Options()
-        options.page_load_strategy = "eager"
         options.add_argument("--headless")
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--window-size=1920x1080")
+
         driver = webdriver.Chrome(options=options)
         driver.get("https://hk.centanet.com/findproperty/list/rent")
 
-        # ✅ Remove overlay if it exists
         try:
-            overlay = WebDriverWait(driver, 5).until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, "div.deepLink-main"))
+            # Remove overlay
+            try:
+                overlay = WebDriverWait(driver, 5).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, "div.deepLink-main"))
+                )
+                driver.execute_script("arguments[0].remove();", overlay)
+            except:
+                pass
+
+            # Select 最新放盤
+            dropdown_trigger = WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, ".title-sort-switch.hidden-xs-only .left .el-dropdown-link"))
             )
-            driver.execute_script("arguments[0].remove();", overlay)
-            print("🧹 Removed blocking overlay")
-        except:
-            print("ℹ️ No overlay found")
+            driver.execute_script("arguments[0].click();", dropdown_trigger)
+            time.sleep(0.5)
+            dropdown_items = driver.find_elements(By.CSS_SELECTOR, "div.dropdown-content-mobile li")
+            for item in dropdown_items:
+                if "最新放盤" in item.text.strip():
+                    driver.execute_script("arguments[0].click();", item)
+                    time.sleep(2)
+                    break
 
-        # ✅ Click dropdown & select 最新放盤
-        dropdown_trigger = WebDriverWait(driver, 10).until(
-            EC.element_to_be_clickable((By.CSS_SELECTOR, ".title-sort-switch.hidden-xs-only .left .el-dropdown-link"))
-        )
-        driver.execute_script("arguments[0].click();", dropdown_trigger)
-        print("✅ Clicked dropdown trigger")
-        time.sleep(0.5)
+            # Scroll
+            for i in range(15):
+                driver.execute_script("window.scrollBy(0, 800);")
+                time.sleep(0.8)
 
-        dropdown_items = driver.find_elements(By.CSS_SELECTOR, "div.dropdown-content-mobile li")
-        for item in dropdown_items:
-            if "最新放盤" in item.text.strip():
-                driver.execute_script("arguments[0].click();", item)
-                print("✅ Clicked 最新放盤")
-                time.sleep(3)
-                break
-
-        # ✅ Scroll until at least 15 listings with images are loaded
-        max_scrolls = 20
-        valid_images = []
-        for i in range(max_scrolls):
-            driver.execute_script("window.scrollBy(0, 800);")
-            time.sleep(0.8)
             soup = BeautifulSoup(driver.page_source, "html.parser")
             listings = soup.select("div.list")
-            valid_images = [c for c in listings if c.select_one("div.el-image.img-holder img")]
-            print(f"📷 Listings: {len(listings)}, with image: {len(valid_images)}")
-            if len(valid_images) >= 15:
-                break
 
-        results = []
-        for idx, card in enumerate(listings[:15]):
-            try:
+            results = []
+            for idx, card in enumerate(listings[:15]):
                 title_tag = card.select_one("span.title-lg")
                 if not title_tag or not title_tag.text.strip():
                     continue
 
                 title = title_tag.text.strip()
-                subtitle = card.select_one("span.title-sm")
-                subtitle = subtitle.text.strip() if subtitle else ""
-                area = card.select_one("div.area")
-                area = area.text.strip() if area else ""
+                subtitle = card.select_one("span.title-sm").text.strip() if card.select_one("span.title-sm") else ""
+                area = card.select_one("div.area").text.strip() if card.select_one("div.area") else ""
                 usable_tag = card.select_one("div.area-block.usable-area div.num > span.hidden-xs-only")
                 usable_area = usable_tag.get_text(strip=True).replace("呎", "").replace(",", "") if usable_tag else ""
-                construction_tag = card.select_one("div.area-block.construction-area div.num > span.hidden-xs-only")
-                construction_area = construction_tag.get_text(strip=True).replace("呎", "").replace(",", "") if construction_tag else ""
                 rent_tag = card.select_one("span.price-info")
-                rent = rent_tag.get_text(strip=True).replace(",", "").replace("$", "") if rent_tag else ""
-                rent = f"${int(rent):,}" if rent else ""
+                rent = f"${int(rent_tag.get_text(strip=True).replace(',', '').replace('$', '')):,}" if rent_tag else ""
 
-                # Extract image_url from el-image.img-holder
                 image_url = ""
                 img_tag = card.select_one("div.el-image.img-holder img")
                 if img_tag:
                     src = img_tag.get("data-src") or img_tag.get("src", "")
-                    if src and ".jpg" in src and src.startswith("http"):
+                    if ".jpg" in src and src.startswith("http"):
                         image_url = src.split("?")[0].strip()
-
-                if not image_url:
-                    print(f"⛔ Skipped listing #{idx} due to missing image URL")
-                    continue
-
-                summary = f"{title}\n{subtitle}\n{area} | 實用: {usable_area}呎 \n租金: {rent}"
-                pic_generated = generate_image_with_photo_overlay(summary, image_url, idx)
 
                 results.append({
                     "title": title,
                     "subtitle": subtitle,
                     "area": area,
                     "usable_area": usable_area,
-                    "construction_area": construction_area,
                     "rent": rent,
                     "image_url": image_url,
-                    "summary": summary
+                    "summary": f"{title}\n{subtitle}\n{area} | 實用: {usable_area}呎 \n租金: {rent}",
+                    "pic_generated": ""  # initially empty
                 })
-            except Exception as parse_err:
-                print(f"⚠️ Error parsing card {idx}: {parse_err}")
 
-        return jsonify({"listings": results})
+            return results
 
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-    finally:
-        if driver:
+        finally:
             driver.quit()
 
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
+    def upload_to_cloudinary_async(listings):
+        for idx, item in enumerate(listings):
+            if item["image_url"]:
+                try:
+                    item["pic_generated"] = generate_image_with_photo_overlay(item["summary"], item["image_url"], idx)
+                except Exception as e:
+                    print(f"⚠️ Cloudinary upload failed for {item['title']}: {e}")
 
-def upload_to_cloudinary_async(listings):
-    for idx, item in enumerate(listings):
-        try:
-            pic_generated = generate_image_with_photo_overlay(item["summary"], item["image_url"], idx)
-            item["pic_generated"] = pic_generated
-        except Exception as e:
-            print(f"⚠️ Cloudinary upload failed for {item['title']}: {e}")
+    @app.route("/run", methods=["GET"])
+    def run_scraper():
+        listings = scrape_listings()
+        Thread(target=upload_to_cloudinary_async, args=(listings,)).start()
+        return jsonify({"listings": listings})
 
-@app.route("/run", methods=["GET"])
-def run_scraper():
-    # 1. Scrape property data (image_url included)
-    listings = scrape_listings()  # <- Your scraping logic
-
-    # 2. Start background upload
-    Thread(target=upload_to_cloudinary_async, args=(listings,)).start()
-
-    # 3. Return results immediately (pic_generated will be empty at first)
-    return jsonify({"listings": listings})
+    if __name__ == "__main__":
+        port = int(os.environ.get("PORT", 8080))
+        app.run(host="0.0.0.0", port=port)
