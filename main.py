@@ -112,14 +112,11 @@ def run_scraper():
             except Exception as e:
                 print(f"⚠️ Error parsing card {idx}: {e}")
 
+        driver.quit()
         return jsonify({"listings": results})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    finally:
-        if driver:
-            driver.quit()
-    
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
