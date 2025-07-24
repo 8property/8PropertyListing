@@ -114,11 +114,11 @@ def run_scraper():
             if "最新放盤" in text:
                 driver.execute_script("arguments[0].click();", item)
                 print("✅ Clicked 最新放盤")
-                time.sleep(0.5)
+                time.sleep(5)
                 break
 
         driver.execute_script("window.scrollBy(0, 1000);")
-        time.sleep(0.2)  # Give JS time to load images
+        time.sleep(1)  # Give JS time to load images
 
         WebDriverWait(driver, 10).until(
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.list"))
