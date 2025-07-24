@@ -117,6 +117,9 @@ def run_scraper():
                 time.sleep(0.5)
                 break
 
+        driver.execute_script("window.scrollBy(0, 1000);")
+        time.sleep(0.2)  # Give JS time to load images
+
         WebDriverWait(driver, 10).until(
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.list"))
         )
