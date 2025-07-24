@@ -77,7 +77,8 @@ def run_scraper():
             try:
                 title = card.select_one("span.title-lg")
                 subtitle = card.select_one("span.title-sm")
-                subtitle = subtitle.text.strip() if subtitle else ""                        area = card.select_one("div.area")
+                subtitle = subtitle.text.strip() if subtitle else ""
+                area = card.select_one("div.area")
                 area = area.text.strip() if area else ""
                 usable_tag = card.select_one("div.area-block.usable-area div.num > span.hidden-xs-only")
                 usable_area = usable_tag.get_text(strip=True).replace("呎", "").replace(",", "") if usable_tag else ""
