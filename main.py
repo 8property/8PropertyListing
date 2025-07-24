@@ -145,20 +145,17 @@ def run_scraper():
                 rent = f"${int(rent):,}" if rent else ""
 
                 # Loop through and pick the first .jpg image
-                image_tags = card.select("img")
-
-                # Loop through and pick the first .jpg image
                 image_url = ""
-                try:
-                    image_elements = card.find_all("img")
-                    for img in image_elements:
-                        src = img.get("data-src") or img.get("src")
-                        if src and ".jpg" in src and src.startswith("http"):
-                            image_url = src.split("?")[0].strip()
-                            break
-                except Exception as img_err:
-                    print(f"⚠️ Image scraping error on listing #{idx}: {img_err}")
+                img_tag = card.select_one("img.el-image__inner")
+                if img_tag:
+                    src = img_tag.get("data-src") or img_tag.get("src", "")
+                    if ".jpg" in src and src.startswith("http"):
+                        image_url = src.split("?")[0].strip()
 
+                if not image_url:
+                    print(f"⛔ Skipped listing #{idx} due to missing image URL")
+                    continue
+                    
                 summary = f"{title}\n{subtitle}\n{area} | 實用: {usable_area}呎 \n租金: {rent}"
                 pic_generated = generate_image_with_photo_overlay(summary, image_url, idx)
 
