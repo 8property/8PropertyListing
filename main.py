@@ -108,18 +108,30 @@ def run_scraper():
 
         # ✅ Scroll until at least 15 listings are loaded
         # Scroll & wait until at least 15 listings with image src are loaded
-        max_scrolls = 20
-        scroll_pause = 1.5
-
+        # After clicking "最新放盤"
+        scroll_pause = 1.2
+        max_scrolls = 30
         for i in range(max_scrolls):
             driver.execute_script("window.scrollBy(0, 600);")
             time.sleep(scroll_pause)
-
             soup = BeautifulSoup(driver.page_source, "html.parser")
             listings = soup.select("div.list")
+
+            # 🧠 Scroll each card into view to trigger image loading
+            for card in listings:
+                try:
+                    card_id = card.get("id")
+                    if card_id:
+                        driver.execute_script(f"document.getElementById('{card_id}').scrollIntoView();")
+                        time.sleep(0.1)
+                except Exception:
+                    continue
+
+            # ✅ Count images
             valid_images = [
-                card.select_one("img.el-image__inner") or card.select_one("img")
-                for card in listings if (card.select_one("img.el-image__inner") or card.select_one("img"))
+                card.select_one("div.img-wrap img") or card.select_one("img")
+                for card in listings
+                if (card.select_one("div.img-wrap img") or card.select_one("img"))
             ]
             print(f"📷 Listings: {len(listings)}, with image: {len(valid_images)}")
 
