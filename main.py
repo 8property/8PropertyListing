@@ -144,18 +144,13 @@ def run_scraper():
                 rent = rent_tag.get_text(strip=True).replace(",", "").replace("$", "") if rent_tag else ""
                 rent = f"${int(rent):,}" if rent else ""
 
-                # Loop through and pick the first .jpg image
-                image_tags = card.select("img")
-
-                # Loop through and pick the first .jpg image
                 image_url = ""
-                for tag in image_tags:
-                    src = tag.get("src", "")
-                    if ".jpg" in src and src.startswith("http"):
+                img_tag = card.select_one("div.img-wrap img")
+                if img_tag:
+                    src = img_tag.get("src", "")
+                    if src and ".jpg" in src and src.startswith("http"):
                         image_url = src.split("?")[0].strip()
-                        break
 
-                # ✅ Skip this listing if no valid image found
                 if not image_url:
                     print(f"⛔ Skipped listing #{idx} due to missing image URL")
                     continue
