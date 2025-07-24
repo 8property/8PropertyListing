@@ -116,8 +116,8 @@ def run_scraper():
         for i in range(max_scrolls):
             driver.execute_script("window.scrollBy(0, 1000);")
             time.sleep(scroll_pause)
-            # soup = BeautifulSoup(driver.page_source, "html.parser")
-            # listings = soup.select("div.list")
+            soup = BeautifulSoup(driver.page_source, "html.parser")
+            listings = soup.select("div.list")
             valid_images = [
                 card.select_one("div.el-image.img-holder img")
                 for card in listings if card.select_one("div.el-image.img-holder img")
@@ -128,8 +128,8 @@ def run_scraper():
                 break
 
         # ✅ Final parsing
-        soup = BeautifulSoup(driver.page_source, "html.parser")
-        listings = soup.select("div.list")
+        # soup = BeautifulSoup(driver.page_source, "html.parser")
+        # listings = soup.select("div.list")
 
         results = []
         for idx, card in enumerate(listings[:15]):
