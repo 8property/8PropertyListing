@@ -117,7 +117,7 @@ def run_scraper():
                 time.sleep(5)
                 break
 
-        for i in range(6):  # ~6 scrolls to cover ~15 listings
+        for i in range(16):  # ~6 scrolls to cover ~15 listings
             driver.execute_script(f"window.scrollBy(0, 500);")
             time.sleep(1.2)
             
