@@ -7,6 +7,7 @@ from selenium.webdriver.common.by import By
 from bs4 import BeautifulSoup
 import time, os, requests
 from PIL import Image, ImageDraw, ImageFont
+from threading import Thread
 from io import BytesIO
 import cloudinary
 import cloudinary.uploader
@@ -107,25 +108,17 @@ def run_scraper():
                 break
 
         # ✅ Scroll until at least 15 listings with images are loaded
-        scroll_pause = 1.2
-        max_scrolls = 30
+        max_scrolls = 20
+        valid_images = []
         for i in range(max_scrolls):
-            driver.execute_script("window.scrollBy(0, 600);")
-            time.sleep(scroll_pause)
+            driver.execute_script("window.scrollBy(0, 800);")
+            time.sleep(0.8)
             soup = BeautifulSoup(driver.page_source, "html.parser")
             listings = soup.select("div.list")
-            valid_images = [
-                card.select_one("div.el-image.img-holder img")
-                for card in listings if card.select_one("div.el-image.img-holder img")
-            ]
+            valid_images = [c for c in listings if c.select_one("div.el-image.img-holder img")]
             print(f"📷 Listings: {len(listings)}, with image: {len(valid_images)}")
-
             if len(valid_images) >= 15:
                 break
-
-        # ✅ Final parsing
-        soup = BeautifulSoup(driver.page_source, "html.parser")
-        listings = soup.select("div.list")
 
         results = []
         for idx, card in enumerate(listings[:15]):
@@ -170,8 +163,7 @@ def run_scraper():
                     "construction_area": construction_area,
                     "rent": rent,
                     "image_url": image_url,
-                    "summary": summary,
-                    "pic_generated": pic_generated
+                    "summary": summary
                 })
             except Exception as parse_err:
                 print(f"⚠️ Error parsing card {idx}: {parse_err}")
@@ -188,3 +180,22 @@ def run_scraper():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
+
+def upload_to_cloudinary_async(listings):
+    for idx, item in enumerate(listings):
+        try:
+            pic_generated = generate_image_with_photo_overlay(item["summary"], item["image_url"], idx)
+            item["pic_generated"] = pic_generated
+        except Exception as e:
+            print(f"⚠️ Cloudinary upload failed for {item['title']}: {e}")
+
+@app.route("/run", methods=["GET"])
+def run_scraper():
+    # 1. Scrape property data (image_url included)
+    listings = scrape_listings()  # <- Your scraping logic
+
+    # 2. Start background upload
+    Thread(target=upload_to_cloudinary_async, args=(listings,)).start()
+
+    # 3. Return results immediately (pic_generated will be empty at first)
+    return jsonify({"listings": listings})
