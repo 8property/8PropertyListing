@@ -127,7 +127,11 @@ def run_scraper():
         results = []
         for idx, card in enumerate(listings[:15]):
             try:
-                title = card.select_one("span.title-lg")
+                title_tag = card.select_one("span.title-lg")
+                if not title_tag or not title_tag.text.strip():
+                    continue
+
+                title = title_tag.text.strip()
                 subtitle = card.select_one("span.title-sm")
                 subtitle = subtitle.text.strip() if subtitle else ""
                 area = card.select_one("div.area")
