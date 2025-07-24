@@ -6,14 +6,7 @@ hidden = [".pythonlibs"]
 
 [nix]
 channel = "stable-24_05"
-packages = [
-  "chromium",
-  "chromedriver",
-  "python311Packages.selenium",
-  "glibcLocales",
-  "fontconfig",  # for PIL to render text
-  "freetype"
-]
+packages = ["chromedriver", "chromium", "fontconfig", "freetype", "geckodriver", "glibcLocales", "python311Packages.selenium"]
 [deployment]
 run =  ["gunicorn", "--bind", "0.0.0.0:5000", "main:app"]
 deploymentTarget = "cloudrun"
