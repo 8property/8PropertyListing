@@ -163,17 +163,27 @@ def run_scraper():
                 rent = f"${int(rent):,}" if rent else ""
 
                 image_url = ""
+
+                # Try to extract from <img> first
                 img_tag = card.select_one("div.img-wrap img") or card.select_one("img")
                 if img_tag:
-                    try:
-                        src = img_tag.get("data-src") or img_tag.get("src", "")
-                        if ".jpg" in src and src.startswith("http"):
-                            image_url = src.split("?")[0].strip()
-                    except Exception as e:
-                        print(f"⚠️ Failed to extract image src in listing #{idx}: {e}")
-                else:
-                    print(f"⛔ No <img> tag found in listing #{idx}")
-                    
+                    src = img_tag.get("data-src") or img_tag.get("src", "")
+                    if src and src.startswith("http"):
+                        image_url = src.split("?")[0].strip()
+
+                # Fallback: Try from background-image in <div style="background-image:url(...)">
+                if not image_url:
+                    div_img_wrap = card.select_one("div.img-wrap")
+                    if div_img_wrap and "style" in div_img_wrap.attrs:
+                        style = div_img_wrap["style"]
+                        import re
+                        match = re.search(r"url\(['\"]?(https?[^'\")]+)['\"]?\)", style)
+                        if match:
+                            image_url = match.group(1).split("?")[0].strip()
+
+                if not image_url:
+                    print(f"⛔ Failed to extract image URL for listing #{idx}")
+
                 summary = f"{title}\n{subtitle}\n{area} | 實用: {usable_area}呎 \n租金: {rent}"
                 pic_generated = generate_image_with_photo_overlay(summary, image_url, idx)
 
