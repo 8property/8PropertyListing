@@ -77,29 +77,44 @@ def run_scraper():
             try:
                 title = card.select_one("span.title-lg")
                 subtitle = card.select_one("span.title-sm")
-                area = card.select_one("div.area")
+                subtitle = subtitle.text.strip() if subtitle else ""                        area = card.select_one("div.area")
+                area = area.text.strip() if area else ""
                 usable_tag = card.select_one("div.area-block.usable-area div.num > span.hidden-xs-only")
+                usable_area = usable_tag.get_text(strip=True).replace("呎", "").replace(",", "") if usable_tag else ""
+
                 construction_tag = card.select_one("div.area-block.construction-area div.num > span.hidden-xs-only")
+                construction_area = construction_tag.get_text(strip=True).replace("呎", "").replace(",", "") if construction_tag else ""
+
                 rent_tag = card.select_one("span.price-info")
-
                 rent = rent_tag.get_text(strip=True).replace(",", "").replace("$", "") if rent_tag else ""
-                rent = f"{int(rent):,}" if rent.isdigit() else rent
+                rent = f"${int(rent):,}" if rent else ""
+                image_tags = card.select("img")
 
+                # Loop through and pick the first .jpg image
                 image_url = ""
-                for img_tag in card.select("img"):
-                    src = img_tag.get("src", "")
+                for tag in image_tags:
+                    src = tag.get("src", "")
                     if ".jpg" in src and src.startswith("http"):
-                        image_url = src.split("?")[0]
+                        image_url = src.split("?")[0].strip()
                         break
 
+                if not image_url:
+                    print(f"⛔ Skipped listing #{idx} due to missing image URL")
+                    continue
+
+                summary = f"{title}\n{subtitle}\n{area} | 實用: {usable_area}呎 \n租金: {rent}"
+                pic_generated = generate_image_with_photo_overlay(summary, image_url, idx)
+
                 results.append({
-                    "title": title.text.strip() if title else "",
-                    "subtitle": subtitle.text.strip() if subtitle else "",
-                    "area": area.text.strip() if area else "",
-                    "usable_area": usable_tag.text.strip().replace("呎", "") if usable_tag else "",
-                    "construction_area": construction_tag.text.strip().replace("呎", "") if construction_tag else "",
-                    "rent": f"${rent}" if rent else "",
-                    "image_url": image_url
+                    "title": title,
+                    "subtitle": subtitle,
+                    "area": area,
+                    "usable_area": usable_area,
+                    "construction_area": construction_area,
+                    "rent": rent,
+                    "image_url": image_url,
+                    "summary": summary,
+                    "pic_generated": pic_generated
                 })
             except Exception as parse_err:
                 print(f"⚠️ Error parsing card {idx}: {parse_err}")
