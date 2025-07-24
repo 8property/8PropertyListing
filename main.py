@@ -3,7 +3,6 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
@@ -23,7 +22,7 @@ def run_scraper():
         # === Setup Chrome ===
         options = Options()
         options.page_load_strategy = "eager"
-        options.add_argument("--headless")  # Use headless for cloud deployment
+        options.add_argument("--headless")  # Keep headless for Render
         options.add_argument("--disable-gpu")
         options.add_argument("--no-sandbox")
         options.add_argument("--disable-dev-shm-usage")
@@ -32,7 +31,7 @@ def run_scraper():
 
         driver.get("https://hk.centanet.com/findproperty/list/rent")
 
-        # ✅ Step 1a: Remove overlay if blocking
+        # ✅ Step 1a: Remove any overlay
         try:
             overlay = WebDriverWait(driver, 5).until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, "div.deepLink-main"))
@@ -42,40 +41,39 @@ def run_scraper():
         except:
             print("ℹ️ No overlay found")
 
-        # ✅ Step 1b: Click the dropdown using JS
+        # ✅ Step 1b: Click dropdown menu
         dropdown_trigger = WebDriverWait(driver, 10).until(
             EC.element_to_be_clickable((By.CSS_SELECTOR, ".title-sort-switch.hidden-xs-only .left .el-dropdown-link"))
         )
         driver.execute_script("arguments[0].click();", dropdown_trigger)
         print("✅ Clicked dropdown trigger")
 
-        # ✅ Step 2: Wait for dropdown content
+        # ✅ Step 2: Wait for dropdown content to appear
         WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "div.dropdown-content-mobile"))
         )
         print("✅ Dropdown content loaded")
+        time.sleep(0.5)
 
-        time.sleep(1)  # Ensure content has loaded fully
-
-        # ✅ Step 3: Find and click '最新放盤'
+        # ✅ Step 3: Find and click "最新放盤"
         dropdown_items = driver.find_elements(By.CSS_SELECTOR, "div.dropdown-content-mobile li")
-        for i in range(len(dropdown_items)):
-            item = driver.find_elements(By.CSS_SELECTOR, "div.dropdown-content-mobile li")[i]
+        for item in dropdown_items:
             text = item.text.strip()
             print(f"📌 Option: {text}")
             if "最新放盤" in text:
                 driver.execute_script("arguments[0].click();", item)
                 print("✅ Clicked 最新放盤")
+                time.sleep(0.5)
                 break
         else:
             print("❌ 最新放盤 not found")
 
-        # ✅ Wait for updated listings
+        # ✅ Step 4: Wait for listings to appear
         WebDriverWait(driver, 10).until(
             EC.presence_of_all_elements_located((By.CSS_SELECTOR, "div.list"))
         )
 
-        # ✅ Step 4: Scrape listings
+        # ✅ Step 5: Scrape listings
         soup = BeautifulSoup(driver.page_source, "html.parser")
         listings = soup.select("div.list")
 
@@ -93,7 +91,7 @@ def run_scraper():
                 rent = rent_tag.get_text(strip=True).replace(",", "").replace("$", "") if rent_tag else ""
                 rent = f"{int(rent):,}" if rent.isdigit() else rent
 
-                # Image
+                # Image URL
                 image_url = ""
                 for img_tag in card.select("img"):
                     src = img_tag.get("src", "")
@@ -111,11 +109,17 @@ def run_scraper():
                     "image_url": image_url
                 })
 
-        driver.quit()
+            except Exception as e:
+                print(f"⚠️ Error parsing card {idx}: {e}")
+
         return jsonify({"listings": results})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    finally:
+        if driver:
+            driver.quit()
+    
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
