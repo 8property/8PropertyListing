@@ -82,10 +82,8 @@ def run_scraper():
                 area = area.text.strip() if area else ""
                 usable_tag = card.select_one("div.area-block.usable-area div.num > span.hidden-xs-only")
                 usable_area = usable_tag.get_text(strip=True).replace("呎", "").replace(",", "") if usable_tag else ""
-
                 construction_tag = card.select_one("div.area-block.construction-area div.num > span.hidden-xs-only")
                 construction_area = construction_tag.get_text(strip=True).replace("呎", "").replace(",", "") if construction_tag else ""
-
                 rent_tag = card.select_one("span.price-info")
                 rent = rent_tag.get_text(strip=True).replace(",", "").replace("$", "") if rent_tag else ""
                 rent = f"${int(rent):,}" if rent else ""
@@ -99,9 +97,9 @@ def run_scraper():
                         image_url = src.split("?")[0].strip()
                         break
 
-                if not image_url:
-                    print(f"⛔ Skipped listing #{idx} due to missing image URL")
-                    continue
+                # if not image_url:
+                #     print(f"⛔ Skipped listing #{idx} due to missing image URL")
+                #     continue
 
                 summary = f"{title}\n{subtitle}\n{area} | 實用: {usable_area}呎 \n租金: {rent}"
                 pic_generated = generate_image_with_photo_overlay(summary, image_url, idx)
