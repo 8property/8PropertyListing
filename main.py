@@ -112,7 +112,7 @@ def run_scraper():
         scroll_pause = 1.2
         max_scrolls = 30
         for i in range(max_scrolls):
-            driver.execute_script("window.scrollBy(0, 600);")
+            driver.execute_script("window.scrollBy(0, 1000);")
             time.sleep(scroll_pause)
             soup = BeautifulSoup(driver.page_source, "html.parser")
             listings = soup.select("div.list")
@@ -123,7 +123,7 @@ def run_scraper():
                     card_id = card.get("id")
                     if card_id:
                         driver.execute_script(f"document.getElementById('{card_id}').scrollIntoView();")
-                        time.sleep(0.1)
+                        time.sleep(2)
                 except Exception:
                     continue
 
