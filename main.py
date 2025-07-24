@@ -118,11 +118,11 @@ def run_scraper():
             time.sleep(scroll_pause)
             # soup = BeautifulSoup(driver.page_source, "html.parser")
             # listings = soup.select("div.list")
-            # valid_images = [
-            #     card.select_one("div.el-image.img-holder img")
-            #     for card in listings if card.select_one("div.el-image.img-holder img")
-            # ]
-            # print(f"📷 Listings: {len(listings)}, with image: {len(valid_images)}")
+            valid_images = [
+                card.select_one("div.el-image.img-holder img")
+                for card in listings if card.select_one("div.el-image.img-holder img")
+            ]
+            print(f"📷 Listings: {len(listings)}, with image: {len(valid_images)}")
 
             if len(valid_images) >= 15:
                 break
