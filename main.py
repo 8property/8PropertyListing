@@ -107,15 +107,24 @@ def run_scraper():
                 break
 
         # ✅ Scroll until at least 15 listings are loaded
+        # Scroll & wait until at least 15 listings with image src are loaded
         max_scrolls = 20
+        scroll_pause = 1.5
+
         for i in range(max_scrolls):
+            driver.execute_script("window.scrollBy(0, 600);")
+            time.sleep(scroll_pause)
+
             soup = BeautifulSoup(driver.page_source, "html.parser")
             listings = soup.select("div.list")
-            print(f"🔍 Found {len(listings)} listings after {i+1} scrolls")
-            if len(listings) >= 15:
+            valid_images = [
+                card.select_one("img.el-image__inner") or card.select_one("img")
+                for card in listings if (card.select_one("img.el-image__inner") or card.select_one("img"))
+            ]
+            print(f"📷 Listings: {len(listings)}, with image: {len(valid_images)}")
+
+            if len(valid_images) >= 15:
                 break
-            driver.execute_script("window.scrollBy(0, 600);")
-            time.sleep(1.2)
 
         # ✅ Final parsing
         soup = BeautifulSoup(driver.page_source, "html.parser")
@@ -147,7 +156,7 @@ def run_scraper():
                     src = img_tag.get("data-src") or img_tag.get("src")
                     if src and ".jpg" in src and src.startswith("http"):
                         image_url = src.split("?")[0].strip()
-
+                        
                 if not image_url:
                     print(f"⛔ Skipped listing #{idx} due to missing image URL")
                     continue
