@@ -106,32 +106,17 @@ def run_scraper():
                 time.sleep(3)
                 break
 
-        # ✅ Scroll until at least 15 listings are loaded
-        # Scroll & wait until at least 15 listings with image src are loaded
-        # After clicking "最新放盤"
+        # ✅ Scroll until at least 15 listings with images are loaded
         scroll_pause = 1.2
         max_scrolls = 30
         for i in range(max_scrolls):
-            driver.execute_script("window.scrollBy(0, 1000);")
+            driver.execute_script("window.scrollBy(0, 600);")
             time.sleep(scroll_pause)
             soup = BeautifulSoup(driver.page_source, "html.parser")
             listings = soup.select("div.list")
-
-            # 🧠 Scroll each card into view to trigger image loading
-            for card in listings:
-                try:
-                    card_id = card.get("id")
-                    if card_id:
-                        driver.execute_script(f"document.getElementById('{card_id}').scrollIntoView();")
-                        time.sleep(2)
-                except Exception:
-                    continue
-
-            # ✅ Count images
             valid_images = [
-                card.select_one("div.img-wrap img") or card.select_one("img")
-                for card in listings
-                if (card.select_one("div.img-wrap img") or card.select_one("img"))
+                card.select_one("div.el-image.img-holder img")
+                for card in listings if card.select_one("div.el-image.img-holder img")
             ]
             print(f"📷 Listings: {len(listings)}, with image: {len(valid_images)}")
 
@@ -162,27 +147,17 @@ def run_scraper():
                 rent = rent_tag.get_text(strip=True).replace(",", "").replace("$", "") if rent_tag else ""
                 rent = f"${int(rent):,}" if rent else ""
 
+                # Extract image_url from el-image.img-holder
                 image_url = ""
-
-                # Try to extract from <img> first
-                img_tag = card.select_one("div.img-wrap img") or card.select_one("img")
+                img_tag = card.select_one("div.el-image.img-holder img")
                 if img_tag:
                     src = img_tag.get("data-src") or img_tag.get("src", "")
-                    if src and src.startswith("http"):
+                    if src and ".jpg" in src and src.startswith("http"):
                         image_url = src.split("?")[0].strip()
 
-                # Fallback: Try from background-image in <div style="background-image:url(...)">
                 if not image_url:
-                    div_img_wrap = card.select_one("div.img-wrap")
-                    if div_img_wrap and "style" in div_img_wrap.attrs:
-                        style = div_img_wrap["style"]
-                        import re
-                        match = re.search(r"url\(['\"]?(https?[^'\")]+)['\"]?\)", style)
-                        if match:
-                            image_url = match.group(1).split("?")[0].strip()
-
-                if not image_url:
-                    print(f"⛔ Failed to extract image URL for listing #{idx}")
+                    print(f"⛔ Skipped listing #{idx} due to missing image URL")
+                    continue
 
                 summary = f"{title}\n{subtitle}\n{area} | 實用: {usable_area}呎 \n租金: {rent}"
                 pic_generated = generate_image_with_photo_overlay(summary, image_url, idx)
