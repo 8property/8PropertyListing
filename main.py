@@ -164,6 +164,11 @@ def run_scraper():
                     continue
 
                 summary = f"{title}\n{subtitle}\n{area} | 實用: {usable_area}呎 \n租金: {rent}"
+                area_first = _first_word(area)                       # like MID(C2,1,FIND(" ",C2)-1)
+                h_area = _to_hashtag(area_first)                     # -> #<firstwordofarea>
+                h_title = _to_hashtag(title)                         # -> #<titlesanitized>
+                fixed = "#香港地產 #地產 #租樓 #租盤 #8property #8propertylistings"
+                hashtag = f"{h_area} {h_title} {fixed}".strip()
                 pic_generated = generate_image_with_photo_overlay(summary, image_url, idx)
 
                 results.append({
@@ -175,6 +180,7 @@ def run_scraper():
                     "rent": rent,
                     "image_url": image_url,
                     "summary": summary,
+                    "hashtag": hashtag,
                     "pic_generated": pic_generated
                 })
             except Exception as parse_err:
