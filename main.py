@@ -107,7 +107,7 @@ def run_scraper():
             if "最新放盤" in item.text.strip():
                 driver.execute_script("arguments[0].click();", item)
                 print("✅ Clicked 最新放盤")
-                time.sleep(5)
+                #time.sleep(5)
                 break
 
         # ✅ Scroll until at least 15 listings with images are loaded
