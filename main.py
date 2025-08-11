@@ -26,19 +26,15 @@ if not os.path.exists(font_path):
 font = ImageFont.truetype(font_path, 48)
 
 def _to_hashtag(s: str) -> str:
-    """Make a safe hashtag: remove spaces/punct but keep Chinese + alphanumerics."""
+    """Make a safe hashtag by removing spaces and |."""
     if not s:
         return ""
-    s = s.strip()
-    s = re.sub(r"\s+", "", s)  # remove spaces
-    s = re.sub(r"[^0-9A-Za-z\u4e00-\u9fff]+", "", s)  # keep CN + alnum
+    s = s.strip().replace(" ", "").replace("|", "")
     return f"#{s}" if s else ""
 
 def _first_word(text: str) -> str:
-    """Get the first word/token (for 'area')."""
-    if not text:
-        return ""
-    return text.strip().split()[0]
+    """Get the first word/token (split by space)."""
+    return text.strip().split()[0] if text else ""
 
 def generate_image_with_photo_overlay(text, image_url, index):
     size = 1080
@@ -127,8 +123,8 @@ def run_scraper():
                 break
 
         # ✅ Scroll until at least 15 listings with images are loaded
-        scroll_pause = 0.2
-        max_scrolls = 15
+        scroll_pause = 0.05
+        max_scrolls = 5
         for i in range(max_scrolls):
             driver.execute_script("window.scrollBy(0, 1000);")
             time.sleep(scroll_pause)
