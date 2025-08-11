@@ -179,7 +179,8 @@ def run_scraper():
                 # === Build hashtag like your Excel formula ===
                 area_first = _first_word(area)                       # like MID(C2,1,FIND(" ",C2)-1)
                 h_area = _to_hashtag(area_first)                     # -> #<firstwordofarea>
-                h_title = _to_hashtag(title)                         # -> #<titlesanitized>
+                title_first = _first_word(title)                       # like MID(C2,1,FIND(" ",C2)-1)
+                h_title = _to_hashtag(title_first)                         # -> #<titlesanitized>
                 fixed = "#香港地產 #地產 #租樓 #租盤 #8property #8propertylistings"
                 hashtag = f"{h_area} {h_title} {fixed}".strip()
                 pic_generated = generate_image_with_photo_overlay(summary, image_url, idx)
