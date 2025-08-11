@@ -10,6 +10,9 @@ from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 import cloudinary
 import cloudinary.uploader
+import re
+
+
 
 # === Cloudinary Config ===
 cloudinary.config(
@@ -17,6 +20,21 @@ cloudinary.config(
     api_key='475588673538526',
     api_secret='YgY9UqhPTxuRdBi7PcFvYnfH4V0'
 )
+
+def _to_hashtag(s: str) -> str:
+    """Make a safe hashtag: remove spaces/punct but keep Chinese + alphanumerics."""
+    if not s:
+        return ""
+    s = s.strip()
+    s = re.sub(r"\s+", "", s)  # remove spaces
+    s = re.sub(r"[^0-9A-Za-z\u4e00-\u9fff]+", "", s)  # keep CN + alnum
+    return f"#{s}" if s else ""
+
+def _first_word(text: str) -> str:
+    """Get the first token from 'area' (works for Chinese/English)."""
+    if not text:
+        return ""
+    return text.strip().split()[0]
 
 # === Font Config ===
 font_path = "NotoSansTC-VariableFont_wght.ttf"
@@ -68,6 +86,10 @@ app = Flask(__name__)
 @app.route("/")
 def home():
     return "✅ Centanet scraper is running."
+
+@app.route("/favicon.ico")
+def favicon():
+    return ("", 204)
 
 @app.route("/run", methods=["GET"])
 def run_scraper():
