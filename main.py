@@ -10,9 +10,6 @@ from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
 import cloudinary
 import cloudinary.uploader
-import re
-
-
 
 # === Cloudinary Config ===
 cloudinary.config(
@@ -20,21 +17,6 @@ cloudinary.config(
     api_key='475588673538526',
     api_secret='YgY9UqhPTxuRdBi7PcFvYnfH4V0'
 )
-
-def _to_hashtag(s: str) -> str:
-    """Make a safe hashtag: remove spaces/punct but keep Chinese + alphanumerics."""
-    if not s:
-        return ""
-    s = s.strip()
-    s = re.sub(r"\s+", "", s)  # remove spaces
-    s = re.sub(r"[^0-9A-Za-z\u4e00-\u9fff]+", "", s)  # keep CN + alnum
-    return f"#{s}" if s else ""
-
-def _first_word(text: str) -> str:
-    """Get the first token from 'area' (works for Chinese/English)."""
-    if not text:
-        return ""
-    return text.strip().split()[0]
 
 # === Font Config ===
 font_path = "NotoSansTC-VariableFont_wght.ttf"
@@ -86,10 +68,6 @@ app = Flask(__name__)
 @app.route("/")
 def home():
     return "✅ Centanet scraper is running."
-
-@app.route("/favicon.ico")
-def favicon():
-    return ("", 204)
 
 @app.route("/run", methods=["GET"])
 def run_scraper():
@@ -186,11 +164,6 @@ def run_scraper():
                     continue
 
                 summary = f"{title}\n{subtitle}\n{area} | 實用: {usable_area}呎 \n租金: {rent}"
-                area_first = _first_word(area)                       # like MID(C2,1,FIND(" ",C2)-1)
-                h_area = _to_hashtag(area_first)                     # -> #<firstwordofarea>
-                h_title = _to_hashtag(title)                         # -> #<titlesanitized>
-                fixed = "#香港地產 #地產 #租樓 #租盤 #8property #8propertylistings"
-                hashtag = f"{h_area} {h_title} {fixed}".strip()
                 pic_generated = generate_image_with_photo_overlay(summary, image_url, idx)
 
                 results.append({
@@ -202,7 +175,6 @@ def run_scraper():
                     "rent": rent,
                     "image_url": image_url,
                     "summary": summary,
-                    "hashtag": hashtag,
                     "pic_generated": pic_generated
                 })
             except Exception as parse_err:
