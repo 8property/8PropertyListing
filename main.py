@@ -29,7 +29,7 @@ def _to_hashtag(s: str) -> str:
     """Make a safe hashtag by removing spaces and |."""
     if not s:
         return ""
-    s = s.strip().replace(" ", "").replace("|", "")
+    s = s.strip().replace(" ", "").replace("|", "").replace("．", "")
     return f"#{s}" if s else ""
 
 def _first_word(text: str) -> str:
