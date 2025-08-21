@@ -168,7 +168,7 @@ def run_scraper():
                 img_tag = card.select_one("div.el-image.img-holder img")
                 if img_tag:
                     src = img_tag.get("data-src") or img_tag.get("src", "")
-                    if src and ".jpg" in src and src.startswith("http"):
+                    if src and src.startswith("http") and any(ext in src.lower() for ext in [".jpg", ".jpeg", ".png", ".webp"]):
                         image_url = src.split("?")[0].strip()
 
                 if not image_url:
