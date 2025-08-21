@@ -124,7 +124,7 @@ def run_scraper():
 
         # ✅ Scroll until at least 15 listings with images are loaded
         scroll_pause = 0.05
-        max_scrolls = 5
+        max_scrolls = 10
         for i in range(max_scrolls):
             driver.execute_script("window.scrollBy(0, 1000);")
             time.sleep(scroll_pause)
